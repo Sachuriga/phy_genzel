@@ -107,7 +107,7 @@ class WaveformView(ScalingMixin, ManualClusteringView):
         'toggle_show_labels': 'ctrl+l',
         'next_waveforms_type': 'w',
         'previous_waveforms_type': 'shift+w',
-        'toggle_mean_waveforms': 'm',
+        'toggle_mean_waveforms': 'shift+m',  # 'm' is move_best_to_mua
         # Box scaling.
         'widen': 'ctrl+right',
         'narrow': 'ctrl+left',
