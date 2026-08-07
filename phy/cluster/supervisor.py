@@ -585,7 +585,13 @@ class ActionCreator:
 
 
 def _is_group_masked(group):
-    return group in ('noise', 'mua')
+    # Masked rows are skipped by the cluster view's next/previous navigation
+    # (see Table.get_sibling_id). Returning False for every group means stepping
+    # through clusters -- e.g. the auto-advance after labelling with alt+g -- visits
+    # *all* units in order, including mua and noise, instead of jumping to the next
+    # good one. To restore the old skip-mua/noise behaviour, return
+    # `group in ('noise', 'mua')`.
+    return False
 
 
 class Supervisor:
