@@ -239,7 +239,8 @@ class CorrelogramView(ScalingMixin, ManualClusteringView):
         """Attach the view to the GUI."""
         super().attach(gui)
 
-        self.actions.add(self.toggle_normalization, shortcut='n', checkable=True)
+        # 'n' is reused for move_best_to_noise; keep normalization on shift+n.
+        self.actions.add(self.toggle_normalization, shortcut='shift+n', checkable=True)
         self.actions.add(self.toggle_labels, checkable=True, checked=True)
         self.actions.separator()
 
