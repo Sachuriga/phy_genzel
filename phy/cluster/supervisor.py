@@ -412,13 +412,13 @@ class ActionCreator:
 
     default_shortcuts = {
         # Clustering.
-        'merge': 'g',
+        'merge': 'alt+g',
         'split': 'k',
         'label': 'l',
         # Move.
         'move_best_to_noise': 'alt+n',
         'move_best_to_mua': 'alt+m',
-        'move_best_to_good': 'alt+g',
+        'move_best_to_good': 'g',
         'move_best_to_unsorted': 'alt+u',
         'move_similar_to_noise': 'ctrl+n',
         'move_similar_to_mua': 'ctrl+m',
