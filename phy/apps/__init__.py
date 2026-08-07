@@ -150,10 +150,10 @@ def cli_trace_gui(ctx, dat_path, **kwargs):
 @phycli.command('template-gui')  # pragma: no cover
 @click.argument('params-path', type=click.Path(exists=True))
 @click.option(
-    '--recluster',
-    is_flag=True,
-    default=False,
-    help='Enable the recluster actions (alt+k). Requires `pip install "phy[recluster]"`.',
+    '--recluster/--no-recluster',
+    default=True,
+    help='Recluster actions (alt+k). On by default; needs scikit-learn '
+    '(`pip install "phy[recluster]"`), otherwise the actions are silently skipped.',
 )
 @click.option(
     '--sort-by-id/--no-sort-by-id',
@@ -162,13 +162,13 @@ def cli_trace_gui(ctx, dat_path, **kwargs):
 )
 @_gui_command
 @click.pass_context
-def cli_template_gui(ctx, params_path, recluster=False, sort_by_id=True, **kwargs):
+def cli_template_gui(ctx, params_path, recluster=True, sort_by_id=True, **kwargs):
     """Launch the template GUI on a params.py file."""
     from .template.gui import template_gui
 
-    # Bundled plugins are attached only when asked for. The recluster actions are
-    # opt-in (they need scikit-learn); id-sorting is a harmless UI default, on
-    # unless --no-sort-by-id is passed.
+    # Both bundled plugins are attached by default. Recluster no-ops without
+    # scikit-learn, so it is safe to attach unconditionally; pass --no-recluster
+    # or --no-sort-by-id to leave either out.
     bundled = (['ReclusterPlugin'] if recluster else []) + (
         ['SortByIdPlugin'] if sort_by_id else []
     )
