@@ -10,4 +10,7 @@ Bundled plugin modules must stay cheap to import: heavy optional dependencies
 level, so that `import phy` does not pull them in.
 """
 
-from . import recluster  # noqa: F401
+from . import (
+    recluster,  # noqa: F401
+    sort_by_id,  # noqa: F401
+)

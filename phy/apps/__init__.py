@@ -155,16 +155,25 @@ def cli_trace_gui(ctx, dat_path, **kwargs):
     default=False,
     help='Enable the recluster actions (alt+k). Requires `pip install "phy[recluster]"`.',
 )
+@click.option(
+    '--sort-by-id/--no-sort-by-id',
+    default=True,
+    help='Sort the cluster view by id on startup, so navigation moves by index number.',
+)
 @_gui_command
 @click.pass_context
-def cli_template_gui(ctx, params_path, recluster=False, **kwargs):
+def cli_template_gui(ctx, params_path, recluster=False, sort_by_id=True, **kwargs):
     """Launch the template GUI on a params.py file."""
     from .template.gui import template_gui
 
-    # The recluster plugin is bundled with phy but never attached on its own, so that
-    # a plain `phy template-gui` run behaves exactly as before.
-    if recluster:
-        kwargs['plugins'] = list(kwargs.get('plugins') or []) + ['ReclusterPlugin']
+    # Bundled plugins are attached only when asked for. The recluster actions are
+    # opt-in (they need scikit-learn); id-sorting is a harmless UI default, on
+    # unless --no-sort-by-id is passed.
+    bundled = (['ReclusterPlugin'] if recluster else []) + (
+        ['SortByIdPlugin'] if sort_by_id else []
+    )
+    if bundled:
+        kwargs['plugins'] = list(kwargs.get('plugins') or []) + bundled
 
     prof = __builtins__.get('profile', None)
     with capture_exceptions():
