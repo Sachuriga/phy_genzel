@@ -12,6 +12,83 @@
 
 [![phy 2.1.0 screenshot](https://user-images.githubusercontent.com/1942359/74028054-c284b880-49a9-11ea-8815-1b7e727a8644.png)](https://user-images.githubusercontent.com/1942359/74028054-c284b880-49a9-11ea-8815-1b7e727a8644.png)
 
+## This fork: phy_genzel
+
+This repository is a fork of [cortex-lab/phy](https://github.com/cortex-lab/phy).
+Its `feature/bundled-plugin` branch adds the following to the Template GUI:
+
+* **Recluster actions.** Split the selected clusters again using their existing
+  PC features, with ISO-SPLIT or a Gaussian mixture. No spike detection is
+  re-run. See [Reclustering](#reclustering).
+* **Cluster view sorted by id** on every launch, so after you label a cluster,
+  phy moves to the next cluster id instead of the next cluster in whatever
+  column was last sorted.
+* **mua and noise clusters are no longer skipped** by next/previous navigation,
+  so every unit is visited in order.
+* **Single-key labelling shortcuts**: `g`, `m`, `n`. See the
+  [shortcut table](#changed-shortcuts).
+
+### Installing this fork
+
+Straight from GitHub:
+
+```bash
+conda create -n phy python=3.13 -y
+conda activate phy
+pip install "phy[recluster] @ git+https://github.com/Sachuriga/phy_genzel.git@feature/bundled-plugin"
+```
+
+Or from a local clone, in editable mode so that `git pull` updates the install:
+
+```bash
+git clone -b feature/bundled-plugin https://github.com/Sachuriga/phy_genzel.git
+cd phy_genzel
+pip install -e ".[recluster]"
+```
+
+The `recluster` extra installs scikit-learn and isosplit 0.1.4. Keep the quotes:
+zsh otherwise treats the square brackets as a glob pattern. Either command
+replaces any phy already installed in the environment.
+
+### Reclustering
+
+The recluster and sort-by-id plugins are both on by default:
+
+```bash
+phy template-gui params.py
+phy template-gui params.py --no-recluster --no-sort-by-id   # leave both out
+```
+
+Select one or more clusters, then:
+
+| Shortcut      | Snippet              | Action                                                                    |
+|---------------|----------------------|---------------------------------------------------------------------------|
+| `alt+k`       | `:recluster`         | ISO-SPLIT, which chooses the number of subclusters itself                 |
+| `shift+alt+k` | `:recluster_n 3`     | Gaussian mixture into a given number of subclusters                       |
+| `ctrl+alt+k`  | `:recluster_dip 1.5` | ISO-SPLIT at a given dip threshold (default 2; lower splits more readily) |
+
+The result is applied as an ordinary split, so `ctrl+z` undoes it. If ISO-SPLIT
+finds a single cluster, nothing changes. To split it anyway, lower the dip
+threshold or set the number of subclusters. On macOS, `ctrl` is the Cmd key and
+`alt` is the Option key.
+
+If scikit-learn is not installed, the recluster actions are left out without an
+error. If the shortcuts do nothing, check the install with
+`python -c "import sklearn, isosplit"`.
+
+### Changed shortcuts
+
+| Action                                 | Upstream phy | This fork |
+|----------------------------------------|--------------|-----------|
+| Move best to good                      | `alt+g`      | `g`       |
+| Merge                                  | `g`          | `alt+g`   |
+| Move best to noise                     | `alt+n`      | `n`       |
+| Move best to mua                       | `alt+m`      | `m`       |
+| Correlogram view: toggle normalization | `n`          | `shift+n` |
+| Waveform view: toggle mean waveforms   | `m`          | `shift+m` |
+
+Snippets such as `:g` (merge) are unchanged.
+
 ## Current status
 
 As of July 2026, `phy 2.1.0` is the current stable release for the 2.x line.
