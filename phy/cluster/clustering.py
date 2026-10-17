@@ -164,13 +164,19 @@ class Clustering:
 
         """
         self._undo_stack.clear()
-        self._spike_clusters = self._spike_clusters_base
+        # Copy, because actions modify the assignment in place and the base must not change.
+        self._spike_clusters = self._spike_clusters_base.copy()
         self._new_cluster_id = self._new_cluster_id_0
 
     @property
     def spike_clusters(self):
         """A n_spikes-long vector containing the cluster ids of all spikes."""
         return self._spike_clusters
+
+    @property
+    def spike_clusters_base(self):
+        """The spike-cluster assignment as it was when the clustering was created."""
+        return self._spike_clusters_base
 
     @property
     def spikes_per_cluster(self):

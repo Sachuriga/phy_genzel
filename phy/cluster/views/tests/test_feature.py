@@ -44,7 +44,11 @@ def test_feature_view(qtbot, gui, n_channels):
     def get_time(cluster_id=None, load_all=None):
         return Bunch(data=spike_times[get_spike_ids(cluster_id)], lim=(0.0, 1.0))
 
-    v = FeatureView(features=get_features, attributes={'time': get_time})
+    v = FeatureView(
+        features=get_features,
+        attributes={'time': get_time},
+        original_ids=lambda cluster_ids: f'orig {cluster_ids}',
+    )
     with qtbot.waitExposed(v.canvas):
         v.show()
     v.attach(gui)

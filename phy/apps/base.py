@@ -405,6 +405,28 @@ class FeatureMixin:
             channel_ids = self.get_best_channels(cluster_id)
         return self._get_spike_features(spike_ids, channel_ids)
 
+    def _get_original_ids_text(self, cluster_ids):
+        """Describe where the selected clusters come from, e.g. `61 (orig 12)`.
+
+        The original ids are those the clusters' spikes had when the data was loaded, so a
+        cluster created by a recluster, split, or merge in this session shows the cluster(s)
+        it was made from. Clusters that existed at load time are left out.
+        """
+        clustering = self.supervisor.clustering
+        base = clustering.spike_clusters_base
+        out = []
+        for cluster_id in cluster_ids or ():
+            spike_ids = clustering.spikes_per_cluster.get(cluster_id, [])
+            if len(spike_ids) == 0:
+                continue
+            ids, counts = np.unique(base[spike_ids], return_counts=True)
+            if list(ids) == [cluster_id]:
+                continue
+            # Largest contributor first.
+            ids = ids[np.argsort(-counts, kind='stable')]
+            out.append(f'{cluster_id} (orig {"+".join(map(str, ids))})')
+        return ', '.join(out)
+
     def create_feature_view(self):
         if self.model.features is None and getattr(self.model, 'spike_waveforms', None) is None:
             # NOTE: we can still construct the feature view when there are spike waveforms.
@@ -412,6 +434,7 @@ class FeatureMixin:
         view = FeatureView(
             features=self._get_features,
             attributes={'time': self._get_feature_view_spike_times},
+            original_ids=self._get_original_ids_text,
         )
 
         @connect

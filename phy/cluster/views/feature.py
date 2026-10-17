@@ -70,6 +70,9 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
     Constructor
     -----------
 
+    original_ids : function
+        Optional. Maps a list of cluster ids to a short string shown in the top-left corner,
+        e.g. the ids the clusters had before they were reclustered.
     features : function
         Maps `(cluster_id, channel_ids=None, load_all=False)` to
         `Bunch(data, channel_ids, channel_labels, spike_ids , masks)`.
@@ -105,7 +108,7 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
         'toggle_automatic_channel_selection': 'c',
     }
 
-    def __init__(self, features=None, attributes=None, **kwargs):
+    def __init__(self, features=None, attributes=None, original_ids=None, **kwargs):
         super().__init__(**kwargs)
         self.state_attrs += ('fixed_channels', 'feature_scaling')
 
@@ -125,6 +128,8 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
         # {name: array}
         # where each array is a `(n_spikes,)` array.
         self.attributes = attributes or {}
+
+        self.original_ids = original_ids
 
         self.visual = ScatterVisual()
         self.canvas.add_visual(self.visual)
@@ -265,6 +270,19 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
                 box_index=(i, j),
             )
 
+    def _plot_original_ids(self):
+        """Show the original cluster ids in the top-left corner of the top-left subplot."""
+        text = self.original_ids(self.cluster_ids) if self.original_ids else None
+        if not text:
+            return
+        self.text_visual.add_batch_data(
+            pos=[-1, 1],
+            anchor=[1, -1],
+            text=text,
+            data_bounds=None,
+            box_index=(0, 0),
+        )
+
     def _plot_axes(self):
         self.line_visual.reset_batch()
         for i, j, dim_x, dim_y in self._iter_subplots():
@@ -377,6 +395,8 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
         # Plot each cluster.
         for clu_idx, bunch in enumerate(bunchs):
             self._plot_points(bunch, clu_idx=clu_idx)
+
+        self._plot_original_ids()
 
         # Upload the data on the GPU.
         self.canvas.update_visual(self.visual)

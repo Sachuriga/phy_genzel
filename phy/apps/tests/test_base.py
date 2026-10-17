@@ -473,6 +473,10 @@ class MockControllerFTests(MinimalControllerTests, unittest.TestCase):
         self.split()
         # Split one cluster => Two new clusters should be selected after the split.
         self.assertEqual(self.selected[:2], [n + 1, n + 2])
+        # The feature view shows the cluster the new ones were split from.
+        text = self.controller._get_original_ids_text(self.selected[:2])
+        assert text.startswith(f'{n + 1} (orig ')
+        assert f'{n + 2} (orig ' in text
 
     def test_feature_view_toggle_spike_reorder(self):
         self.gui.view_actions.toggle_spike_reorder(True)
