@@ -72,7 +72,7 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
 
     original_ids : function
         Optional. Maps a list of cluster ids to a short string shown in the top-left corner,
-        e.g. the ids the clusters had before they were reclustered.
+        e.g. the ids the clusters had before they were reclustered. Use `\\n` for several lines.
     features : function
         Maps `(cluster_id, channel_ids=None, load_all=False)` to
         `Bunch(data, channel_ids, channel_labels, spike_ids , masks)`.
@@ -275,13 +275,16 @@ class FeatureView(MarkerSizeMixin, ScalingMixin, ManualClusteringView):
         text = self.original_ids(self.cluster_ids) if self.original_ids else None
         if not text:
             return
-        self.text_visual.add_batch_data(
-            pos=[-1, 1],
-            anchor=[1, -1],
-            text=text,
-            data_bounds=None,
-            box_index=(0, 0),
-        )
+        for k, line in enumerate(text.splitlines()):
+            # The anchor is in units of the string size. Start one line down, below the
+            # subplot's own axis label in the top-right corner, then one line per entry.
+            self.text_visual.add_batch_data(
+                pos=[-1, 1],
+                anchor=[1, -3 - 2 * k],
+                text=line,
+                data_bounds=None,
+                box_index=(0, 0),
+            )
 
     def _plot_axes(self):
         self.line_visual.reset_batch()

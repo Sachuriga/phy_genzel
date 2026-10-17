@@ -406,15 +406,20 @@ class FeatureMixin:
         return self._get_spike_features(spike_ids, channel_ids)
 
     def _get_original_ids_text(self, cluster_ids):
-        """Describe where the selected clusters come from, e.g. `61 (orig 12)`.
+        """Describe where the selected clusters come from, one line per cluster.
 
-        The original ids are those the clusters' spikes had when the data was loaded, so a
-        cluster created by a recluster, split, or merge in this session shows the cluster(s)
-        it was made from. Clusters that existed at load time are left out.
+        The original ids are the Kilosort templates of the clusters' spikes when the model has
+        `spike_templates`, so they survive saving and reopening; otherwise they are the clusters
+        the spikes were in when the data was loaded. A cluster made by a recluster, split, or
+        merge shows the cluster(s) it was made from, e.g. `61: orig 12`; clusters that still
+        match their original id are left out. If all selected clusters have the same origin,
+        a single `orig 12` line is returned.
         """
         clustering = self.supervisor.clustering
-        base = clustering.spike_clusters_base
-        out = []
+        base = getattr(self.model, 'spike_templates', None)
+        if base is None or len(base) != clustering.n_spikes:
+            base = clustering.spike_clusters_base
+        lines = []
         for cluster_id in cluster_ids or ():
             spike_ids = clustering.spikes_per_cluster.get(cluster_id, [])
             if len(spike_ids) == 0:
@@ -424,8 +429,13 @@ class FeatureMixin:
                 continue
             # Largest contributor first.
             ids = ids[np.argsort(-counts, kind='stable')]
-            out.append(f'{cluster_id} (orig {"+".join(map(str, ids))})')
-        return ', '.join(out)
+            lines.append((cluster_id, '+'.join(map(str, ids))))
+        if not lines:
+            return ''
+        # All selected clusters come from the same place: no need to repeat their ids.
+        if len(lines) == len(cluster_ids) and len({orig for _, orig in lines}) == 1:
+            return f'orig {lines[0][1]}'
+        return '\n'.join(f'{cluster_id}: orig {orig}' for cluster_id, orig in lines)
 
     def create_feature_view(self):
         if self.model.features is None and getattr(self.model, 'spike_waveforms', None) is None:

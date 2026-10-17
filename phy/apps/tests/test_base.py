@@ -62,7 +62,8 @@ class MyModel:
     spike_attributes = {}
     amplitudes = np.random.normal(size=n_spikes, loc=1, scale=0.1)
     spike_clusters = artificial_spike_clusters(n_spikes, n_clusters)
-    spike_templates = spike_clusters
+    # A copy, like TemplateModel: curation edits spike_clusters in place, never the templates.
+    spike_templates = spike_clusters.copy()
     spike_samples = artificial_spike_samples(n_spikes)
     spike_times = spike_samples / sample_rate
     spike_times_reordered = artificial_spike_samples(n_spikes) / sample_rate
@@ -474,9 +475,9 @@ class MockControllerFTests(MinimalControllerTests, unittest.TestCase):
         # Split one cluster => Two new clusters should be selected after the split.
         self.assertEqual(self.selected[:2], [n + 1, n + 2])
         # The feature view shows the cluster the new ones were split from.
-        text = self.controller._get_original_ids_text(self.selected[:2])
-        assert text.startswith(f'{n + 1} (orig ')
-        assert f'{n + 2} (orig ' in text
+        orig = self.controller._get_original_ids_text(self.selected[:1])
+        assert orig.startswith('orig ')
+        assert self.controller._get_original_ids_text(self.selected[:2]) == orig
 
     def test_feature_view_toggle_spike_reorder(self):
         self.gui.view_actions.toggle_spike_reorder(True)
