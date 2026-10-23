@@ -1078,16 +1078,19 @@ class BaseController:
     def _set_cluster_metrics(self):
         """Set the cluster metrics dictionary with some default metrics."""
         self.cluster_metrics = {}  # dictionary {name: function cluster_id => value}, for plugins
+        # The isi_violations_ratio, num_spikes and isi_violations_count columns are
+        # live versions of the columns HM_Tracker step r writes, under the same
+        # names: they replace the .tsv values (see _set_supervisor), so a merged
+        # or split cluster shows its own value, not its parent's.
+        # The table shows the columns in this order, right after 'id', so the
+        # ISI violations ratio comes first.
+        self.cluster_metrics['isi_violations_ratio'] = self.get_isi_violations_ratio
         self.cluster_metrics['ch'] = self.get_best_channel_label
         if getattr(self.model, 'channel_shanks', None) is not None:
             self.cluster_metrics['sh'] = self.get_channel_shank
         self.cluster_metrics['depth'] = self.get_probe_depth
         self.cluster_metrics['fr'] = self.get_mean_firing_rate
-        # Live versions of the columns HM_Tracker step r writes, under the same
-        # names: they replace the .tsv values (see _set_supervisor), so a merged
-        # or split cluster shows its own value, not its parent's.
         self.cluster_metrics['num_spikes'] = self.get_num_spikes_no_duplicates
-        self.cluster_metrics['isi_violations_ratio'] = self.get_isi_violations_ratio
         self.cluster_metrics['isi_violations_count'] = self.get_isi_violations_count
 
     def _set_similarity_functions(self):

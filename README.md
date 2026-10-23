@@ -30,7 +30,8 @@ Its `feature/bundled-plugin` branch adds the following to the Template GUI:
 * **Live ISI-violation columns.** `num_spikes`, `isi_violations_ratio` and
   `isi_violations_count` are computed from each cluster's current spikes, with
   the same formula as HM_Tracker step r (duplicated spikes ≤ 0.3 ms apart are
-  dropped first). A merged or split cluster shows its own value right away;
+  dropped first). `isi_violations_ratio` is the first column after `id`.
+  A merged or split cluster shows its own value right away;
   `cluster_<metric>.tsv` columns with these names are ignored. The ISI view
   prints the ratio and the violation count. Other step-r columns (`snr`,
   `isolation_distance`, template metrics, `auto_group`, `redundant_with`) need

@@ -65,6 +65,7 @@ def test_live_columns_replace_stale_tsv_values(tempdir):
     assert info['isi_violations_count'] == count
     assert info['num_spikes'] == n_spikes
     assert supervisor.columns.count('isi_violations_ratio') == 1
+    assert supervisor.columns[:2] == ['id', 'isi_violations_ratio']   # first after id
     assert 'isi_violations_ratio' not in supervisor.cluster_meta.fields
     assert 'snr' in supervisor.cluster_meta.fields    # other .tsv columns still load
 
