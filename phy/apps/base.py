@@ -49,6 +49,7 @@ from phy.utils.context import Context, _cache_methods
 from phy.utils.plugin import attach_plugins
 
 from ._utils import _close_trace_reader
+from .isi_metrics import isi_violations
 
 logger = logging.getLogger(__name__)
 
@@ -963,6 +964,7 @@ class BaseController:
         self._set_view_creator()
 
         # Set default cluster metrics. Other metrics can be added by plugins.
+        self._isi_violations_cache = {}  # cluster id -> (ratio, count, n_spikes)
         self._set_cluster_metrics()
 
         # Set the default similarity functions. Other similarity functions can be added by plugins.
@@ -1081,6 +1083,12 @@ class BaseController:
             self.cluster_metrics['sh'] = self.get_channel_shank
         self.cluster_metrics['depth'] = self.get_probe_depth
         self.cluster_metrics['fr'] = self.get_mean_firing_rate
+        # Live versions of the columns HM_Tracker step r writes, under the same
+        # names: they replace the .tsv values (see _set_supervisor), so a merged
+        # or split cluster shows its own value, not its parent's.
+        self.cluster_metrics['num_spikes'] = self.get_num_spikes_no_duplicates
+        self.cluster_metrics['isi_violations_ratio'] = self.get_isi_violations_ratio
+        self.cluster_metrics['isi_violations_count'] = self.get_isi_violations_count
 
     def _set_similarity_functions(self):
         """Set the `similarity_functions` dictionary that maps similarity names to functions
@@ -1099,21 +1107,31 @@ class BaseController:
         # Cluster groups.
         cluster_groups = self.model.metadata.get('group', {})
 
+        # A cluster_<name>.tsv column with the same name as a live metric is left
+        # out: otherwise its stored value would hide the live one, be copied to
+        # new clusters on merge/split, and be saved back stale. The .tsv file on
+        # disk is not changed.
+        cluster_labels = {
+            name: values
+            for name, values in self.model.metadata.items()
+            if name not in self.cluster_metrics
+        }
+
         # Create the Supervisor instance.
         supervisor = Supervisor(
             spike_clusters=self.model.spike_clusters,
             cluster_groups=cluster_groups,
             cluster_metrics=self.cluster_metrics,
-            cluster_labels=self.model.metadata,
+            cluster_labels=cluster_labels,
             similarity=self.similarity_functions[self.similarity],
             new_cluster_id=new_cluster_id,
             context=self.context,
         )
         # Load the non-group metadata from the model to the cluster_meta.
-        for name in sorted(self.model.metadata):
+        for name in sorted(cluster_labels):
             if name == 'group':
                 continue
-            values = self.model.metadata.get(name, {})
+            values = cluster_labels.get(name, {})
             d = {cluster_id: {name: value} for cluster_id, value in values.items()}
             supervisor.cluster_meta.from_dict(d)
 
@@ -1282,6 +1300,29 @@ class BaseController:
     def get_mean_firing_rate(self, cluster_id):
         """Return the mean firing rate of a cluster."""
         return self.supervisor.n_spikes(cluster_id) / max(1, self.model.duration)
+
+    def _get_isi_violations(self, cluster_id):
+        """(ratio, count, n_spikes) of a cluster's current spikes, duplicates
+        dropped (see isi_metrics.py). Cached per cluster id: phy gives every
+        merged or split cluster a new id, so an id's spikes never change."""
+        if cluster_id not in self._isi_violations_cache:
+            spike_ids = self.supervisor.clustering.spikes_per_cluster[cluster_id]
+            self._isi_violations_cache[cluster_id] = isi_violations(
+                self.model.spike_samples[spike_ids], self.model.sample_rate,
+                self.model.duration)
+        return self._isi_violations_cache[cluster_id]
+
+    def get_isi_violations_ratio(self, cluster_id):
+        """ISI violations ratio (Hill et al. 2011), as HM_Tracker step r computes it."""
+        return self._get_isi_violations(cluster_id)[0]
+
+    def get_isi_violations_count(self, cluster_id):
+        """Number of ISIs < 1.5 ms, duplicated spikes dropped."""
+        return self._get_isi_violations(cluster_id)[1]
+
+    def get_num_spikes_no_duplicates(self, cluster_id):
+        """Number of spikes with duplicated spikes dropped (step r's num_spikes)."""
+        return self._get_isi_violations(cluster_id)[2]
 
     def get_best_channel(self, cluster_id):
         """Return the best channel id of a given cluster. This is the first channel returned
@@ -1648,10 +1689,14 @@ class BaseController:
         return _make
 
     def _get_isi(self, cluster_id):
-        """Return the ISI data of a cluster."""
+        """Return the ISI data of a cluster, with its live ISI violations as text.
+        The histogram itself still includes duplicated spikes (they show up in
+        the first bin); the text numbers do not, as in step r."""
         st = self.get_spike_times(cluster_id)
         intervals = np.diff(st)
-        return Bunch(data=intervals)
+        ratio, count, _ = self._get_isi_violations(cluster_id)
+        text = f'ratio {ratio:.3g}   {count} ISI < 1.5 ms'
+        return Bunch(data=intervals, text=text)
 
     def _get_firing_rate(self, cluster_id):
         """Return the firing rate data of a cluster."""
